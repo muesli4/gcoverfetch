@@ -16,7 +16,6 @@ cover_dialog::cover_dialog()
     , _album_directory("~/")
     , _decision()
 {
-
     _vbox.pack_start(_image_notebook);
 
     _add_button.signal_clicked().connect([&]()

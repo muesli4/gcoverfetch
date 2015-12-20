@@ -5,7 +5,7 @@ LIBS     = libglyr taglib gtkmm-3.0
 CXXFLAGS = '-std=c++11' '-std=gnu++11' '-Wall' `pkg-config --cflags $(LIBS)` -I/usr/include/boost -DBOOST_SYSTEM_NO_DEPRECATED
 LDFLAGS  = `pkg-config --libs $(LIBS)` -lboost_filesystem -lboost_system
 
-OBJ = main.o cover_dialog.o image.o
+OBJ = main.o cover_dialog.o image.o fetch.o
 
 main: $(OBJ)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJ) -o main

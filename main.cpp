@@ -1,20 +1,11 @@
-//#include <stdio.h>
-
-#include <glyr/glyr.h>
-
-#include <unistd.h>
-
 #include <cctype>
 
 #include <vector>
 #include <string>
-#include <sstream>
-#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
 #include <array>
-#include <condition_variable>
 
 #include <boost/filesystem.hpp>
 
@@ -25,66 +16,9 @@
 
 #include "cover_dialog.hpp"
 #include "image.hpp"
+#include "fetch.hpp"
 
 namespace fs = boost::filesystem;
-
-std::vector<image> fetch_cover(std::string path, std::string artist, std::string album)
-{
-    GlyrQuery q;
-    GLYR_ERROR e;
-    int length = -1;
-
-    glyr_query_init(&q);
-
-    glyr_opt_force_utf8(&q, true);
-    glyr_opt_parallel(&q, true);
-    glyr_opt_number(&q, 2);
-    //glyr_opt_timeout(&q, 2);
-
-    glyr_opt_musictree_path(&q, path.c_str());
-    glyr_opt_artist(&q, artist.c_str());
-    glyr_opt_album(&q, album.c_str());
-
-    glyr_opt_type(&q, GLYR_GET_COVERART);
-    //glyr_opt_dlcallback(&q, &cb, 0);
-    glyr_opt_download(&q, true);
-    glyr_opt_from(&q, "all");
-
-    GlyrMemCache * c = glyr_get(&q, &e, &length);
-
-
-    std::string error_string;
-    std::vector<image> result;
-
-    if (c == 0)
-    {
-        std::stringstream ss;
-        ss << "error with glyr_get: " << glyr_strerror(e);
-        error_string = ss.str();
-    }
-    else
-    {
-        GlyrMemCache * current = c;
-
-        while (current != 0)
-        {
-            result.push_back(image(current->data, current->size, current->img_format, current->prov));
-
-            current = current->next;
-        }
-    }
-
-    // cleanup
-    glyr_query_destroy(&q);
-    glyr_cache_free(c);
-
-    if (!error_string.empty())
-    {
-        throw std::runtime_error(error_string);
-    }
-
-    return result;
-}
 
 std::string lowercase_extension(fs::path const & path)
 {
@@ -165,8 +99,6 @@ bool collect_parent_recursive_if(fs::path path, Pred p, std::vector<fs::path> & 
 
 std::vector<fs::path> album_directories(fs::path music_directory)
 {
-    // TODO remove
-    //return list_recursive_if(music_directory, ::is_album_directory);
     std::vector<fs::path> result;
     collect_parent_recursive_if(music_directory, [](fs::path p){ return is_music_file(p) || is_discnumber_directory(p); }, result);
     return result;
@@ -179,10 +111,7 @@ int main(int argc, char * * argv)
 
     if (argc == 2)
     {
-        glyr_init();
-
         cover_dialog dialog;
-
 
         try
         {
@@ -266,11 +195,6 @@ int main(int argc, char * * argv)
 
                             for (auto const & img : res)
                             {
-                                //std::string filename = img.filename((fs::temp_directory_path() / fs::unique_path()).string());
-
-                                //img.write_to(filename);
-                                //std::cout << "    > temporary image: " << filename << std::endl;
-
                                 image_infos.push_back(std::make_pair(img.source(), img.data()));
                             }
 
@@ -324,7 +248,5 @@ int main(int argc, char * * argv)
         {
             std::cerr << e.what().raw() << std::endl;
         }
-
-        glyr_cleanup();
     }
 }
