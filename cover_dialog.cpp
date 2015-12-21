@@ -2,6 +2,8 @@
 
 #include <gdkmm/pixbufloader.h>
 
+#include <sstream>
+
 cover_dialog::cover_dialog()
     : _application(Gtk::Application::create())
     , _window()
@@ -16,6 +18,7 @@ cover_dialog::cover_dialog()
     , _album_directory("~/")
     , _decision()
 {
+    //_image_notebook.set_tab_pos(Gtk::PositionType::POS_LEFT);
     _vbox.pack_start(_image_notebook);
 
     _add_button.signal_clicked().connect([&]()
@@ -58,27 +61,43 @@ void cover_dialog::set_title(std::string title)
     _window.set_title(title);
 }
 
-void cover_dialog::load_covers(std::vector<std::pair<std::string, image::image_data_type>> const & image_infos)
+void cover_dialog::load_covers(std::vector<std::pair<std::string, image::shared_image_type>> const & image_infos)
 {
     while (_image_notebook.get_n_pages() > 0)
     {
         _image_notebook.remove_page();
     }
 
+    std::size_t const size = image_infos.size();
     _images.clear();
-    _images.reserve(image_infos.size());
+    _images.reserve(size);
+    _image_buffers.clear();
+    _image_buffers.reserve(size);
+    _labels.clear();
+    _labels.reserve(size);
 
     for (auto const & p : image_infos)
     {
-        image::image_data_type const & img_data = p.second;
+        _image_buffers.push_back(p.second);
+
+        image::image_data_type const & img_data = *p.second;
 
         auto pbl_ptr = Gdk::PixbufLoader::create();
         pbl_ptr->write(reinterpret_cast<guint8 const *>(img_data.data()), img_data.size());
         pbl_ptr->close();
 
-        _images.push_back(Gtk::Image(pbl_ptr->get_pixbuf()));
+        auto pb = pbl_ptr->get_pixbuf();
+
+        _images.push_back(Gtk::Image(pb));
         Gtk::Image & img = _images.back();
-        _image_notebook.append_page(img, p.first);
+
+        std::stringstream ss;
+        ss << "<b>" << p.first << "</b>\n<i>" << pb->get_width() << 'x' << pb->get_height() << "</i>";
+        _labels.push_back(Gtk::Label(ss.str(), Gtk::Align::ALIGN_CENTER, Gtk::Align::ALIGN_CENTER));
+        Gtk::Label & label = _labels.back();
+        label.set_justify(Gtk::Justification::JUSTIFY_CENTER);
+        label.set_use_markup();
+        _image_notebook.append_page(img, label);
         img.show();
     }
     _image_notebook.show();

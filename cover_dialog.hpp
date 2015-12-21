@@ -26,7 +26,7 @@ struct cover_dialog
 
     void set_title(std::string title);
 
-    void load_covers(std::vector<std::pair<std::string, image::image_data_type>> const & image_infos);
+    void load_covers(std::vector<std::pair<std::string, image::shared_image_type>> const & image_infos);
 
     void set_album_directory(std::string album_directory);
 
@@ -46,6 +46,8 @@ struct cover_dialog
 
     Gtk::Notebook _image_notebook;
     std::vector<Gtk::Image> _images;
+    std::vector<Gtk::Label> _labels;
+    std::vector<image::shared_image_type> _image_buffers;
 
     std::string _album_directory;
 

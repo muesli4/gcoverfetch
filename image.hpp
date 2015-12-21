@@ -5,16 +5,16 @@
 #include <string>
 #include <algorithm>
 #include <fstream>
+#include <memory>
 
 struct image
 {
     typedef std::vector<char> image_data_type;
-
-    image(image_data_type const & image_data, std::string const & format, std::string const & source);
+    typedef std::shared_ptr<image_data_type const> shared_image_type;
 
     image(char * ptr, std::size_t size, std::string const & format, std::string const & source);
 
-    image_data_type data() const;
+    shared_image_type shared_image_data() const;
 
     std::string format() const;
 
@@ -26,7 +26,7 @@ struct image
 
     private:
 
-    image_data_type _image_data;
+    std::shared_ptr<image_data_type> _shared_image_data;
     std::string _format;
     std::string _source;
 };

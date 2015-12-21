@@ -134,10 +134,10 @@ int main(int argc, char * * argv)
                 {
                     std::cout << "    > cover found" << std::endl;
                 }
+                // fetch cover
                 else
                 {
-
-                    // fetch cover
+                    // extract tags from files
                     fs::recursive_directory_iterator const end;
                     
                     std::string album;
@@ -154,10 +154,9 @@ int main(int argc, char * * argv)
                             // read album
                             album = tag.album().to8Bit(true);
 
+                            // TODO taglib does not read albumartist somehow
                             // read album artist
-                            TagLib::StringList sl =
-                                tag.properties()
-                                [TagLib::String("albumartist", TagLib::String::UTF8)];
+                            TagLib::StringList sl = tag.properties()["albumartist"];
 
                             bool has_album_artist = false;
                             for (auto it = sl.begin(); it != sl.end(); it++)
@@ -183,19 +182,26 @@ int main(int argc, char * * argv)
                     }
                     else
                     {
-                        std::cout << "    > trying to fetch cover for '" << album_artist << " - " << album << '\'' << std::endl;
+                        std::cout << "    > trying to fetch cover for '"
+                                  << album_artist
+                                  << " - "
+                                  << album
+                                  << '\''
+                                  << std::endl;
 
                         auto res = fetch_cover(album_path.string(), album_artist, album);
 
                         if (res.size() >= 1)
                         {
-                            std::cout << "    > found covers (" << res.size() << ")" << std::endl;
+                            std::cout << "    > found covers ("
+                                      << res.size()
+                                      << ")"
+                                      << std::endl;
 
-                            std::vector<std::pair<std::string, image::image_data_type>> image_infos;
-
+                            std::vector<std::pair<std::string, image::shared_image_type>> image_infos;
                             for (auto const & img : res)
                             {
-                                image_infos.push_back(std::make_pair(img.source(), img.data()));
+                                image_infos.push_back(std::make_pair(img.source(), img.shared_image_data()));
                             }
 
                             // open dialog
@@ -214,7 +220,10 @@ int main(int argc, char * * argv)
                                     std::string const filename = chosen_image.filename((album_path / "front").string());
                                     chosen_image.write_to(filename);
 
-                                    std::cout << "    > wrote cover to: '" << filename << '\'' << std::endl;
+                                    std::cout << "    > wrote cover to: '"
+                                              << filename
+                                              << '\''
+                                              << std::endl;
                                 }
                                 else
                                 {
@@ -224,20 +233,14 @@ int main(int argc, char * * argv)
                                     std::cout << "    > declined" << std::endl;
                                 }
                             }
-
-                            //for (auto const & p : image_infos)
-                            //{
-                            //    fs::remove(p.first);
-                            //}
                         }
                         else
                         {
                             std::cout << "    > couldn't find a matching cover" << std::endl;
                         }
-
-
                     }
                 }
+                std::cout << std::endl;
             }
         }
         catch (std::exception const & e)
