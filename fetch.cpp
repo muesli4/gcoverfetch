@@ -18,20 +18,21 @@ std::vector<image> fetch_cover(std::string path, std::string artist, std::string
 
     //glyr_opt_force_utf8(&q, true);
     //glyr_opt_parallel(&q, 0);
-    glyr_opt_number(&q, 2);
-    glyr_opt_timeout(&q, 1);
+    glyr_opt_number(&q, 4);
+    glyr_opt_timeout(&q, 2);
 
-    glyr_opt_musictree_path(&q, path.c_str());
+    // TODO
+    //glyr_opt_musictree_path(&q, path.c_str());
     glyr_opt_artist(&q, artist.c_str());
     glyr_opt_album(&q, album.c_str());
 
     glyr_opt_type(&q, GLYR_GET_COVERART);
     //glyr_opt_dlcallback(&q, &cb, 0);
     glyr_opt_download(&q, true);
-    glyr_opt_from(&q, "all;-slothradio;");
+    //glyr_opt_from(&q, "discogs;coverartarchive;");
 
-    glyr_opt_img_maxsize(&q, 1200);
-    glyr_opt_img_minsize(&q, 400);
+    //glyr_opt_img_maxsize(&q, 1200);
+    //glyr_opt_img_minsize(&q, 400);
 
     GlyrMemCache * c = glyr_get(&q, &e, &length);
 
