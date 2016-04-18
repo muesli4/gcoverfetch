@@ -106,6 +106,41 @@ std::vector<fs::path> album_directories(fs::path music_directory)
 
 std::array<std::string const, 3> const cover_extensions = { "jpg", "jpeg", "png" };
 
+// use TagLib to read album and artist from a music file
+std::pair<std::string, std::string> read_artist_and_album(fs::path const & path)
+{
+    std::string album_artist;
+    std::string album;
+
+    TagLib::FileRef const f(path.c_str());
+    TagLib::Tag const & tag = *f.tag();
+
+    // TODO taglib does not read albumartist somehow
+    // read album artist
+    TagLib::StringList const & sl = tag.properties()["albumartist"];
+
+    bool has_album_artist = false;
+    for (auto it = sl.begin(); it != sl.end(); it++)
+    {
+        album_artist = it->to8Bit(true);
+        has_album_artist = true;
+
+        std::cout << "FOUND ALBUM ARTIST" << std::endl;
+        break;
+    }
+
+    // if it doesn't have album artist, read the artist tag
+    if (!has_album_artist)
+    {
+        album_artist = tag.artist().to8Bit(true);
+    }
+
+    // read album
+    album = tag.album().to8Bit(true);
+
+    return std::make_pair(album_artist, album);
+}
+
 int main(int argc, char * * argv)
 {
 
@@ -138,41 +173,51 @@ int main(int argc, char * * argv)
                 else
                 {
                     // extract tags from files
-                    fs::recursive_directory_iterator const end;
+                    fs::directory_iterator const end;
                     
                     std::string album;
                     std::string album_artist;
 
-                    for (fs::recursive_directory_iterator dir_it(album_path); dir_it != end; dir_it++)
+                    // find all music files in the current directory
+                    auto const scan_music_directory = [&](fs::path const & search_path)
                     {
-                        fs::path const & path = *dir_it;
-                        if ((album.empty() || album_artist.empty()) && is_music_file(path))
+                        for (fs::directory_iterator dir_it(search_path); dir_it != end; dir_it++)
                         {
-                            TagLib::FileRef f(path.c_str());
-                            TagLib::Tag & tag = *f.tag();
+                            fs::path const & sub_path = *dir_it;
 
-                            // read album
-                            album = tag.album().to8Bit(true);
-
-                            // TODO taglib does not read albumartist somehow
-                            // read album artist
-                            TagLib::StringList sl = tag.properties()["albumartist"];
-
-                            bool has_album_artist = false;
-                            for (auto it = sl.begin(); it != sl.end(); it++)
+                            if (is_music_file(sub_path))
                             {
-                                album_artist = it->to8Bit(true);
-                                has_album_artist = true;
-
-                                std::cout << "FOUND ALBUM ARTIST" << std::endl;
-                                break;
+                                if (album.empty() || album_artist.empty())
+                                {
+                                    auto res = read_artist_and_album(sub_path);
+                                    album_artist = res.first;
+                                    album = res.second;
+                                }
+                                else
+                                {
+                                    break;
+                                }
                             }
+                        }
+                    };
 
-                            if (!has_album_artist)
+                    // try the album directory
+                    scan_music_directory(album_path);
+
+                    // but if that fails, try whether some music files are
+                    // within discnumber directories
+                    if (album.empty() && album_artist.empty())
+                    {
+                        for (fs::directory_iterator dir_it(album_path); dir_it != end; dir_it++)
+                        {
+                            auto const & p = dir_it->path();
+
+                            if (has_discnumber_filename(p))
                             {
-                                album_artist = tag.artist().to8Bit(true);
+                                scan_music_directory(p);
+                                if (!album.empty() && !album_artist.empty())
+                                    break;
                             }
-
                         }
                     }
 
@@ -211,7 +256,7 @@ int main(int argc, char * * argv)
                                 dialog.load_covers(image_infos);
                                 dialog.set_album_directory(album_path.string());
 
-                                auto dialog_res = dialog.run();
+                                auto const dialog_res = dialog.run();
                                 cover_dialog::decision_type decision = dialog_res.first;
 
                                 if (decision == cover_dialog::DECISION_ACCEPT)
